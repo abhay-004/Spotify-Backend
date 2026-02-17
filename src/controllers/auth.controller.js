@@ -52,3 +52,44 @@ export const registerUser = async (req, res) => {
     });
   }
 };
+
+//login routes for user
+
+export const loginUser = async (req, res) => {
+  try {
+    const { userName, email, password } = req.body;
+
+    const user = await User.findOne({
+      $or: [{ userName }, { email }],
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid crendentials" });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+    );
+
+    res.cookie("token", token);
+
+    return res.status(200).json({
+      message: "User logged in successfully",
+      user,
+      token,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(501).json({
+      message: error.message,
+    });
+  }
+};
